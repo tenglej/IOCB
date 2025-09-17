@@ -2,12 +2,13 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import griddata
 
-dataset = 1
+dataset = 0
 # === Original data ===
 
 min1_index = 3
 min2_index = 25
 saddle_index = 14
+interpolationType = 'quadratic'  # 'quadratic' or 'linear'
 data = [
     [220, 240, 1.46922268, 14.69496128],
     [220, 260, 1.45849363, 13.02985302],
@@ -37,6 +38,7 @@ data = [
     [260, 320, 1.95971857, 12.4256788]
 ]
 if dataset == 1:
+    interpolationType = 'linear'  # 'quadratic' or 'linear'
     min1_index = 0
     min2_index = 1
     saddle_index = 5
@@ -90,15 +92,41 @@ E_grid = griddata(data[:, 0:2], data[:, 3],
                   (R1_grid, R2_grid), method='linear')
 
 # === Generate smooth parabolic reaction coordinate through saddle ===
-n_path = 400
-t = np.linspace(0, 1, n_path)
 
-# Quadratic Lagrange interpolation for 3 points (min1, saddle, min2)
-R1_path = (1 - t)*(1 - 2*t)*min1[0] + 4*t * \
-    (1 - t)*saddle[0] + t*(2*t - 1)*min2[0]
-R2_path = (1 - t)*(1 - 2*t)*min1[1] + 4*t * \
-    (1 - t)*saddle[1] + t*(2*t - 1)*min2[1]
-E_path = griddata(data[:, 0:2], data[:, 3], (R1_path, R2_path), method='cubic')
+
+def interpolate(min1, saddle, min2, n_path=400, interpolation='quadratic'):
+    t = np.linspace(0, 1, n_path)
+    fR1_path = 0
+    fR2_path = 0
+    if interpolation == 'quadratic':
+        # Quadratic Lagrange interpolation for 3 points (min1, saddle, min2)
+        fR1_path = (1 - t)*(1 - 2*t)*min1[0] + 4*t * \
+            (1 - t)*saddle[0] + t*(2*t - 1)*min2[0]
+        fR2_path = (1 - t)*(1 - 2*t)*min1[1] + 4*t * \
+            (1 - t)*saddle[1] + t*(2*t - 1)*min2[1]
+    else:
+        n_seg = n_path  # points per segment
+        # Linear segment: min1 -> saddle
+        t1 = np.linspace(0, 1, n_seg)
+        R1_seg1 = (1 - t1) * min1[0] + t1 * saddle[0]
+        R2_seg1 = (1 - t1) * min1[1] + t1 * saddle[1]
+
+        # Linear segment: saddle -> min2
+        t2 = np.linspace(0, 1, n_seg)
+        R1_seg2 = (1 - t2) * saddle[0] + t2 * min2[0]
+        R2_seg2 = (1 - t2) * saddle[1] + t2 * min2[1]
+
+        # Concatenate segments
+        fR1_path = np.concatenate([R1_seg1, R1_seg2])
+        fR2_path = np.concatenate([R2_seg1, R2_seg2])
+    return fR1_path, fR2_path
+
+
+R1_path, R2_path = interpolate(
+    min1, saddle, min2, n_path=400, interpolation=interpolationType)
+E_path = griddata(data[:, 0:2], data[:, 3],
+                  (R1_path, R2_path), method='linear')
+
 
 # === 3D PES plot ===
 fig = plt.figure(figsize=(10, 8))
@@ -121,9 +149,12 @@ ax.scatter(saddle[0], saddle[1], saddle[3], color='black', s=100,
            depthshade=False, zorder=30)
 
 # Add labels directly above the points
-ax.text(min1[0], min1[1], min1[3] + 0.4, "O2", color='blue')
-ax.text(min2[0], min2[1], min2[3] + 0.4, "1P", color='green')
+ax.text(min1[0], min1[1], min1[3] + 0.4, "O3", color='blue')
+ax.text(min2[0], min2[1], min2[3] + 0.4, "O2", color='green')
 ax.text(saddle[0], saddle[1], saddle[3] + 0.4, "TS1", color='black')
+
+
+ax.set_clip_on(False)
 
 if dataset == 1:
     ax.set_xlabel('[H-O] (pm)')
