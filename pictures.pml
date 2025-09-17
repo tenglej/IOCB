@@ -72,7 +72,7 @@ set sphere_scale, 0.25, nearby_oxygens
 # ————————————————————————————
 
 # 1. H’s on sidechains near sub*
-select hb_H_sub_sc, (near_sidechains and elem H) within 3.5 of sub*
+select hb_H_sub_sc, (near_sidechains and elem H) within 6 of sub*
 # 2. H’s on waters near sub*
 select hb_H_sub_w,  (water_near_substrate and elem H)  within 3.5 of sub*
 # 3. Show those H’s
