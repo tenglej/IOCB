@@ -1,8 +1,15 @@
+#arg porcessing 
+python
+from pymol import cmd
+
+argv = cmd.get_argv()
+STRICT = "--strict" in argv
+python end
+
 # ————————————————————————————
 # Load & initial styling
 # ————————————————————————————
 # from pymol import cmd, stored
-
 
 hide everything
 bg_color white
@@ -26,7 +33,18 @@ color orange, sub* and elem S
 # ————————————————————————————
 # Surrounding residue sidechains
 # ————————————————————————————
-select near_residues,     byres(br. sub* around 5) and polymer.protein and not sub*
+python
+from pymol import cmd
+
+if STRICT:
+    # ONLY residues that are directly selected (no neighborhood expansion)
+    cmd.select("near_residues", "byres(sub*) and polymer.protein and not sub*")
+else:
+    # original behavior: include neighbors within 5 Å
+    cmd.select("near_residues", "byres(br. sub* around 5) and polymer.protein and not sub*")
+python end
+
+#select near_residues,     byres(br. sub* around 5) and polymer.protein and not sub*
 select near_sidechains,   near_residues and not name N+CA+C+O
 
 show sticks, near_sidechains
