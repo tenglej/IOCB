@@ -203,4 +203,4 @@ python end
 show sticks, metals or metal_coordination
 set stick_radius, 0.1, metals or metal_coordination
 zoom metals or metal_coordination
-
+zoom visible
